@@ -1,3 +1,16 @@
+@import url("https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Rajdhani:wght@500;700&display=swap");
+
+:root {
+  --shell-bg-top: rgba(15, 56, 121, 0.34);
+  --shell-bg-bottom: rgba(8, 30, 70, 0.42);
+  --shell-border: rgba(147, 204, 255, 0.42);
+  --hud-top: #101319;
+  --hud-bottom: #06080d;
+  --hud-text: #edf4ff;
+  --hud-accent: #7fc1ff;
+  --panel-shadow: rgba(3, 16, 42, 0.85);
+}
+
 * {
   box-sizing: border-box;
 }
@@ -5,44 +18,69 @@
 body {
   margin: 0;
   min-height: 100vh;
-  font-family: "Lucida Console", "Courier New", monospace;
+  font-family: "Rajdhani", "Trebuchet MS", sans-serif;
   color: #fefefe;
   background:
-    radial-gradient(circle at 14% 8%, rgba(255, 253, 191, 0.75), transparent 20%),
-    linear-gradient(180deg, #7fd3ff 0%, #6cb8ff 54%, #87d7ff 100%);
+    radial-gradient(circle at 14% 12%, rgba(255, 244, 180, 0.76), transparent 21%),
+    radial-gradient(circle at 82% 82%, rgba(102, 202, 255, 0.42), transparent 30%),
+    linear-gradient(145deg, #92dfd8 0%, #6eb8ff 38%, #79b0ff 100%);
   display: grid;
   place-items: center;
-  padding: 20px;
+  padding: 22px;
+  overflow-x: hidden;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.22;
+  background-image:
+    repeating-linear-gradient(
+      45deg,
+      rgba(255, 255, 255, 0.08) 0 2px,
+      rgba(255, 255, 255, 0) 2px 7px
+    );
 }
 
 .game-shell {
-  width: min(980px, 100%);
+  position: relative;
+  width: min(1010px, 100%);
   display: grid;
-  gap: 8px;
+  gap: 10px;
   justify-items: center;
-  background: rgba(17, 58, 124, 0.12);
-  border: 4px solid rgba(16, 57, 119, 0.45);
-  border-radius: 14px;
-  padding: 14px;
-  backdrop-filter: blur(2px);
+  padding: 16px 14px;
+  border-radius: 16px;
+  border: 4px solid var(--shell-border);
+  background:
+    linear-gradient(180deg, var(--shell-bg-top), var(--shell-bg-bottom)),
+    radial-gradient(circle at 40% -20%, rgba(255, 255, 255, 0.22), transparent 40%);
+  box-shadow:
+    0 22px 50px rgba(8, 22, 54, 0.32),
+    0 12px 0 rgba(13, 37, 78, 0.55);
+  backdrop-filter: blur(5px);
 }
 
 h1 {
-  margin: 0;
+  margin: 2px 0 0;
+  font-family: "Press Start 2P", "Courier New", monospace;
   letter-spacing: 2px;
-  font-size: clamp(1rem, 2.2vw, 1.4rem);
-  color: #fff8cc;
+  font-size: clamp(1rem, 2vw, 1.45rem);
+  color: #fff5c4;
   text-shadow:
-    0 2px 0 #2f1808,
-    0 4px 0 #2f1808;
+    0 2px 0 #60350f,
+    0 4px 0 #3f230a,
+    0 10px 20px rgba(0, 0, 0, 0.25);
 }
 
 .hint {
   margin: 0;
   text-align: center;
-  font-size: 0.8rem;
-  color: #f1f6ff;
-  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.45);
+  font-size: 1rem;
+  font-weight: 700;
+  color: #eef8ff;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.4);
 }
 
 .hud {
@@ -50,36 +88,40 @@ h1 {
   display: grid;
   grid-template-columns: repeat(5, minmax(120px, 1fr));
   gap: 12px;
-  background: #121212;
-  color: #fafafa;
+  background: linear-gradient(180deg, var(--hud-top), var(--hud-bottom));
+  color: var(--hud-text);
   border: 3px solid #000;
-  border-radius: 6px;
-  padding: 8px 10px;
-  font-size: 0.78rem;
+  border-radius: 8px;
+  padding: 10px 10px 9px;
+  font-family: "Press Start 2P", "Courier New", monospace;
+  font-size: 0.72rem;
   text-align: center;
-  box-shadow: 0 3px 0 #00000066;
+  box-shadow:
+    0 3px 0 #00000066,
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
 .hud p {
   margin: 0;
   display: grid;
-  gap: 2px;
+  gap: 3px;
 }
 
 .hud-label {
-  color: #b6d8ff;
-  font-size: 0.68rem;
+  color: var(--hud-accent);
+  font-size: 0.62rem;
   letter-spacing: 1px;
 }
 
 #game {
   width: min(960px, 100%);
   height: auto;
-  border: 3px solid #0f2f67;
-  border-radius: 8px;
+  border: 3px solid #153d7a;
+  border-radius: 9px;
   box-shadow:
-    0 12px 28px rgba(0, 0, 0, 0.25),
-    0 4px 0 rgba(2, 26, 70, 0.75);
+    0 18px 32px rgba(0, 0, 0, 0.25),
+    0 5px 0 var(--panel-shadow),
+    0 0 0 2px rgba(123, 187, 255, 0.24);
   background: #5c94fc;
   image-rendering: pixelated;
 }
@@ -87,14 +129,14 @@ h1 {
 .message {
   margin: 0;
   min-height: 1.2rem;
-  font-size: 0.82rem;
-  font-weight: 700;
-  color: #fff6b0;
+  font-family: "Press Start 2P", "Courier New", monospace;
+  font-size: 0.78rem;
+  color: #ffe98e;
   text-shadow: 0 1px 0 #1c0c00;
 }
 
 .touch-controls {
-  width: min(560px, 100%);
+  width: min(580px, 100%);
   display: none;
   gap: 8px;
   grid-template-columns: repeat(4, 1fr);
@@ -103,10 +145,10 @@ h1 {
 .touch-btn {
   border: 2px solid #132347;
   border-radius: 10px;
-  background: linear-gradient(180deg, #fff2aa, #f7b432);
+  background: linear-gradient(180deg, #fff3b5, #f7be3f);
   color: #281600;
-  font-weight: 800;
-  font-size: 0.9rem;
+  font-family: "Press Start 2P", "Courier New", monospace;
+  font-size: 0.7rem;
   padding: 11px 10px;
   box-shadow: 0 4px 0 #8b5000;
 }
@@ -117,20 +159,34 @@ h1 {
 }
 
 .touch-jump {
-  background: linear-gradient(180deg, #a4ffb7, #49b761);
+  background: linear-gradient(180deg, #b5ffc3, #52be6a);
   box-shadow: 0 4px 0 #246d39;
 }
 
 .touch-run {
-  background: linear-gradient(180deg, #ffd3d1, #ef5a4f);
+  background: linear-gradient(180deg, #ffdcd8, #ef5a4f);
   color: #2a0404;
   box-shadow: 0 4px 0 #8e1915;
 }
 
 @media (max-width: 760px) {
+  body {
+    padding: 10px;
+  }
+
+  .game-shell {
+    padding: 12px 8px;
+    gap: 8px;
+  }
+
   .hud {
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 8px;
+    font-size: 0.64rem;
+  }
+
+  .hint {
+    font-size: 0.86rem;
   }
 }
 

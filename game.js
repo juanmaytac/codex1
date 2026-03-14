@@ -49,7 +49,17 @@ let coins = [];
 let enemies = [];
 let powerups = [];
 let popCoins = [];
+let particles = [];
+const ambient = [];
 const bumps = new Map();
+let cameraShake = 0;
+let shakeX = 0;
+let shakeY = 0;
+let landingCooldown = 0;
+
+const grainCanvas = document.createElement("canvas");
+const grainCtx = grainCanvas.getContext("2d");
+let grainReady = false;
 
 const player = {
   x: TILE * 2,
@@ -146,6 +156,14 @@ function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
 }
 
+function rand(min, max) {
+  return min + Math.random() * (max - min);
+}
+
+function lerp(a, b, t) {
+  return a + (b - a) * t;
+}
+
 function approach(value, target, amount) {
   if (value < target) {
     return Math.min(value + amount, target);
@@ -183,6 +201,145 @@ function addCoins(amount) {
     setMessage("1UP!");
   }
   updateHud();
+}
+
+function buildGrainTexture() {
+  if (!grainCtx) return;
+  grainCanvas.width = 160;
+  grainCanvas.height = 160;
+  const image = grainCtx.createImageData(grainCanvas.width, grainCanvas.height);
+  const data = image.data;
+  for (let i = 0; i < data.length; i += 4) {
+    const v = Math.floor(rand(120, 255));
+    data[i] = v;
+    data[i + 1] = v;
+    data[i + 2] = v;
+    data[i + 3] = Math.floor(rand(18, 48));
+  }
+  grainCtx.putImageData(image, 0, 0);
+  grainReady = true;
+}
+
+function seedAmbient() {
+  ambient.length = 0;
+  for (let i = 0; i < 85; i += 1) {
+    ambient.push({
+      x: rand(0, WIDTH),
+      y: rand(0, HEIGHT),
+      r: rand(0.7, 2.4),
+      vx: rand(-0.14, -0.03),
+      vy: rand(-0.04, 0.04),
+      alpha: rand(0.06, 0.24),
+      twinkle: rand(0, Math.PI * 2)
+    });
+  }
+}
+
+function initVisualFx() {
+  buildGrainTexture();
+  seedAmbient();
+}
+
+function addCameraShake(intensity = 1.4) {
+  cameraShake = Math.max(cameraShake, intensity);
+}
+
+function spawnParticle(opts) {
+  particles.push({
+    x: opts.x ?? 0,
+    y: opts.y ?? 0,
+    vx: opts.vx ?? 0,
+    vy: opts.vy ?? 0,
+    gravity: opts.gravity ?? 0.2,
+    drag: opts.drag ?? 0.94,
+    size: opts.size ?? 3,
+    shrink: opts.shrink ?? 0.98,
+    life: opts.life ?? 24,
+    maxLife: opts.life ?? 24,
+    color: opts.color || "#ffffff",
+    layer: opts.layer || "front",
+    glow: opts.glow || 0
+  });
+}
+
+function spawnDustBurst(x, y, intensity = 1) {
+  const count = Math.floor(10 + intensity * 8);
+  for (let i = 0; i < count; i += 1) {
+    spawnParticle({
+      x: x + rand(-10, 10),
+      y: y + rand(-2, 2),
+      vx: rand(-2.8, 2.8) * intensity,
+      vy: rand(-2.4, -0.4) * intensity,
+      gravity: 0.26,
+      drag: 0.91,
+      size: rand(2.2, 5.4),
+      shrink: 0.96,
+      life: rand(13, 27),
+      color: Math.random() > 0.5 ? "#e8c488" : "#d69d5e",
+      layer: "back"
+    });
+  }
+}
+
+function spawnSparkBurst(x, y, intensity = 1) {
+  const count = Math.floor(8 + intensity * 9);
+  for (let i = 0; i < count; i += 1) {
+    const electric = Math.random() > 0.52;
+    spawnParticle({
+      x: x + rand(-6, 6),
+      y: y + rand(-8, 8),
+      vx: rand(-3.2, 3.2) * intensity,
+      vy: rand(-3.8, 1.2) * intensity,
+      gravity: electric ? 0.16 : 0.22,
+      drag: 0.9,
+      size: rand(1.5, 3.2),
+      shrink: 0.94,
+      life: rand(10, 22),
+      color: electric ? "#ffe977" : "#fff2b8",
+      layer: "front",
+      glow: electric ? 8 : 4
+    });
+  }
+}
+
+function updateParticles(dt) {
+  for (const p of particles) {
+    p.life -= dt;
+    p.x += p.vx * dt;
+    p.y += p.vy * dt;
+    p.vx *= Math.pow(p.drag, dt);
+    p.vy += p.gravity * dt;
+    p.size *= Math.pow(p.shrink, dt);
+  }
+  particles = particles.filter((p) => p.life > 0 && p.size > 0.25);
+}
+
+function updateAmbient(dt) {
+  const windBoost = clamp(Math.abs(player.vx) / 8, 0, 1.2);
+  for (const p of ambient) {
+    p.twinkle += 0.03 * dt;
+    p.x += (p.vx - windBoost * 0.04) * dt;
+    p.y += p.vy * dt;
+
+    if (p.x < -12) p.x = WIDTH + 12;
+    if (p.x > WIDTH + 12) p.x = -12;
+    if (p.y < -12) p.y = HEIGHT + 12;
+    if (p.y > HEIGHT + 12) p.y = -12;
+  }
+}
+
+function updateScreenFx(dt) {
+  landingCooldown = Math.max(0, landingCooldown - dt);
+  if (cameraShake <= 0) {
+    shakeX = 0;
+    shakeY = 0;
+    return;
+  }
+
+  cameraShake = Math.max(0, cameraShake - 0.2 * dt);
+  const mag = cameraShake * 1.35;
+  shakeX = rand(-mag, mag);
+  shakeY = rand(-mag * 0.7, mag * 0.7);
 }
 
 function buildLevel() {
@@ -390,11 +547,13 @@ function loadLevel() {
     vx: -1.1,
     vy: 0,
     onGround: false,
+    facing: -1,
     state: "walk",
     timer: 0
   }));
   powerups = [];
   popCoins = [];
+  particles = [];
   bumps.clear();
   stats.time = START_TIME;
   timerMs = 0;
@@ -402,6 +561,10 @@ function loadLevel() {
   flagPause = 0;
   winBonusGiven = false;
   cameraX = 0;
+  cameraShake = 0;
+  shakeX = 0;
+  shakeY = 0;
+  landingCooldown = 0;
   resetPlayer("small");
   updateHud();
 }
@@ -415,6 +578,8 @@ function restartGame() {
 }
 
 function loseLife(msg) {
+  addCameraShake(3.2);
+  spawnDustBurst(player.x + player.w / 2, player.y + player.h, 1.2);
   stats.lives -= 1;
   updateHud();
   if (stats.lives <= 0) {
@@ -589,8 +754,12 @@ function hitBlock(tx, ty, tile) {
     if (player.form === "big") {
       setTile(tx, ty, ".");
       addScore(50);
+      spawnDustBurst(tx * TILE + TILE / 2, ty * TILE + TILE / 2, 1.1);
+      spawnSparkBurst(tx * TILE + TILE / 2, ty * TILE + TILE / 2, 0.7);
+      addCameraShake(1.8);
       sfx("break");
     } else {
+      spawnDustBurst(tx * TILE + TILE / 2, ty * TILE + TILE, 0.45);
       sfx("bump");
     }
     return;
@@ -606,11 +775,13 @@ function hitBlock(tx, ty, tile) {
     if (content === "mushroom") {
       spawnMushroom(tx, ty);
       addScore(200);
+      spawnSparkBurst(tx * TILE + TILE / 2, ty * TILE + 2, 0.9);
       sfx("power");
     } else {
       spawnPopCoin(tx, ty);
       addCoins(1);
       addScore(200);
+      spawnSparkBurst(tx * TILE + TILE / 2, ty * TILE + 2, 0.5);
       sfx("coin");
     }
     return;
@@ -623,6 +794,8 @@ function hitBlock(tx, ty, tile) {
 
 function hurtPlayer(sourceX) {
   if (state !== "playing" || player.invul > 0) return;
+  addCameraShake(2.3);
+  spawnSparkBurst(player.x + player.w / 2, player.y + player.h * 0.45, 1.1);
 
   if (player.form === "big") {
     shrinkPlayer();
@@ -649,6 +822,8 @@ function checkFlagTouch() {
   player.vx = 0;
   player.vy = 0;
   player.x = f.x - player.w + 4;
+  spawnSparkBurst(player.x + player.w / 2, player.y + player.h * 0.45, 0.7);
+  addCameraShake(1.2);
   addScore(clamp(Math.floor((f.bottom - player.y) / 32), 1, 10) * 100);
   setMessage("Bandera capturada!");
   sfx("flag");
@@ -686,6 +861,7 @@ function updatePopCoins(dt) {
 }
 
 function updatePlayer(dt) {
+  const wasGrounded = player.onGround;
   const left = keys.has("a") || keys.has("arrowleft");
   const right = keys.has("d") || keys.has("arrowright");
   const jumpHeld = keys.has("space") || keys.has("w") || keys.has("arrowup");
@@ -723,9 +899,25 @@ function updatePlayer(dt) {
 
   if (!jumpHeld && player.vy < -3.2) player.vy += 0.78 * dt;
   player.vy = Math.min(player.vy + GRAVITY * dt, MAX_FALL);
+  const fallSpeedBeforeMove = player.vy;
 
   moveX(player, dt);
   moveY(player, dt, hitBlock);
+
+  if (!wasGrounded && player.onGround && fallSpeedBeforeMove > 5 && landingCooldown <= 0) {
+    const impact = clamp(fallSpeedBeforeMove / 8, 0.5, 1.6);
+    spawnDustBurst(player.x + player.w / 2, player.y + player.h - 1, impact);
+    addCameraShake(impact * 1.25);
+    landingCooldown = 8;
+  }
+
+  if (player.onGround && Math.abs(player.vx) > 5.4 && Math.random() < 0.1 * dt) {
+    spawnDustBurst(player.x + player.w / 2, player.y + player.h - 1, 0.22);
+  }
+
+  if (!player.onGround && Math.abs(player.vx) > 5.9 && Math.random() < 0.12 * dt) {
+    spawnSparkBurst(player.x + player.w / 2, player.y + player.h * 0.55, 0.24);
+  }
 
   if (player.invul > 0) player.invul = Math.max(0, player.invul - dt);
 
@@ -738,6 +930,9 @@ function updatePlayer(dt) {
 }
 
 function updateEnemies(dt) {
+  const tension = clamp(player.x / Math.max(1, WORLD_W - WIDTH), 0, 1);
+  const speedBoost = lerp(1, 1.42, tension);
+
   for (const e of enemies) {
     if (e.state === "dead") {
       e.timer -= dt;
@@ -745,12 +940,25 @@ function updateEnemies(dt) {
       continue;
     }
 
+    const baseSpeed = e.type === "beetle" ? 1.35 : 1.15;
+    const targetSpeed = baseSpeed * speedBoost;
+    if (Math.abs(e.vx) < 0.03) {
+      const dir = e.facing || -1;
+      e.vx = dir * targetSpeed;
+    } else {
+      const dir = e.vx < 0 ? -1 : 1;
+      e.vx = approach(e.vx, dir * targetSpeed, 0.09 * dt);
+      e.facing = dir;
+    }
+
     e.vy = Math.min(e.vy + GRAVITY * dt, MAX_FALL);
     const prevVx = e.vx;
     const wall = moveX(e, dt);
     if (wall) {
-      const speed = Math.max(Math.abs(prevVx), 1);
-      e.vx = prevVx >= 0 ? -speed : speed;
+      const speed = Math.max(targetSpeed, 1);
+      e.facing = prevVx >= 0 ? -1 : 1;
+      e.vx = e.facing * speed;
+      spawnDustBurst(e.x + e.w / 2, e.y + e.h, 0.18);
     }
     moveY(e, dt);
 
@@ -771,6 +979,9 @@ function updateEnemies(dt) {
       e.vx = 0;
       e.vy = 0;
       player.vy = -8.4;
+      spawnDustBurst(e.x + e.w / 2, e.y + e.h, 0.55);
+      spawnSparkBurst(e.x + e.w / 2, e.y + e.h / 2, 0.35);
+      addCameraShake(1.35);
       addScore(100);
       sfx("stomp");
     } else {
@@ -806,6 +1017,8 @@ function updatePowerups(dt) {
       p.collected = true;
       const grew = growPlayer();
       player.invul = 50;
+      spawnSparkBurst(p.x + p.w / 2, p.y + p.h / 2, 1.2);
+      addCameraShake(1.4);
       addScore(1000);
       setMessage(grew ? "Super Pikachu activado!" : "Puntos extra!");
       sfx("power");
@@ -823,6 +1036,7 @@ function updateCoins() {
       c.collected = true;
       addCoins(1);
       addScore(100);
+      spawnSparkBurst(c.x, c.y + bob, 0.45);
       sfx("coin");
     }
   }
@@ -853,6 +1067,8 @@ function updateFlag(dt) {
         addScore(stats.time * 20);
         winBonusGiven = true;
       }
+      spawnSparkBurst(LEVEL.castle.doorX, LEVEL.castle.y + TILE * 2.5, 1.4);
+      addCameraShake(2.2);
       state = "won";
       setMessage("Nivel completado! Presiona R para reiniciar.");
       sfx("win");
@@ -874,6 +1090,9 @@ function update(dt, dtMs) {
   frame += dt;
   updateBumps(dt);
   updatePopCoins(dt);
+  updateAmbient(dt);
+  updateParticles(dt);
+  updateScreenFx(dt);
 
   if (state === "playing") {
     updateTimer(dtMs);
@@ -903,17 +1122,47 @@ function drawCloud(x, y, s) {
 }
 
 function drawBackground() {
-  ctx.fillStyle = "#5c94fc";
+  const progress = clamp(cameraX / Math.max(1, WORLD_W - WIDTH), 0, 1);
+  const skyTopHue = Math.round(212 - progress * 14);
+  const skyMidHue = Math.round(216 - progress * 8);
+  const skyTop = `hsl(${skyTopHue}, 88%, ${Math.round(68 - progress * 4)}%)`;
+  const skyMid = `hsl(${skyMidHue}, 82%, ${Math.round(66 - progress * 3)}%)`;
+  const skyBottom = `hsl(211, 88%, ${Math.round(73 - progress * 2)}%)`;
+
+  const sky = ctx.createLinearGradient(0, 0, 0, HEIGHT);
+  sky.addColorStop(0, skyTop);
+  sky.addColorStop(0.52, skyMid);
+  sky.addColorStop(1, skyBottom);
+  ctx.fillStyle = sky;
   ctx.fillRect(0, 0, WIDTH, HEIGHT);
 
-  ctx.fillStyle = "#ffef9a";
+  const sunX = WIDTH - 108 + Math.sin(frame / 180) * 16;
+  const sunY = 90 + Math.cos(frame / 235) * 8;
+  const sunBloom = ctx.createRadialGradient(sunX, sunY, 20, sunX, sunY, 230);
+  sunBloom.addColorStop(0, "rgba(255,241,173,0.34)");
+  sunBloom.addColorStop(0.32, "rgba(255,228,150,0.16)");
+  sunBloom.addColorStop(1, "rgba(255,220,120,0)");
+  ctx.fillStyle = sunBloom;
+  ctx.fillRect(0, 0, WIDTH, HEIGHT);
+
+  ctx.fillStyle = "rgba(255,238,160,0.9)";
   ctx.beginPath();
-  ctx.arc(WIDTH - 90, 90, 40, 0, Math.PI * 2);
+  ctx.arc(sunX, sunY, 40, 0, Math.PI * 2);
   ctx.fill();
+
+  const horizonHaze = ctx.createLinearGradient(0, HEIGHT * 0.36, 0, HEIGHT * 0.82);
+  horizonHaze.addColorStop(0, "rgba(170,225,255,0)");
+  horizonHaze.addColorStop(1, "rgba(196,236,255,0.42)");
+  ctx.fillStyle = horizonHaze;
+  ctx.fillRect(0, HEIGHT * 0.36, WIDTH, HEIGHT * 0.5);
 
   for (const c of clouds) {
     const x = c.x - cameraX * 0.24;
     if (x < -120 || x > WIDTH + 120) continue;
+    ctx.save();
+    ctx.globalAlpha = 0.18;
+    drawCloud(x + 8, c.y + 6, c.s * 1.02);
+    ctx.restore();
     drawCloud(x, c.y, c.s);
   }
 
@@ -921,20 +1170,120 @@ function drawBackground() {
     const x = h.x - cameraX * 0.42;
     if (x + h.w < -40 || x > WIDTH + 40) continue;
 
-    ctx.fillStyle = "#6bd15e";
+    const hillGrad = ctx.createLinearGradient(0, h.y - h.h, 0, h.y + h.h);
+    hillGrad.addColorStop(0, "#7be06d");
+    hillGrad.addColorStop(1, "#4db948");
+    ctx.fillStyle = hillGrad;
     ctx.beginPath();
     ctx.ellipse(x + h.w / 2, h.y, h.w / 2, h.h, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    ctx.fillStyle = "#4dac45";
+    ctx.fillStyle = "rgba(53,147,58,0.65)";
     ctx.beginPath();
-    ctx.ellipse(x + h.w / 2, h.y + 10, h.w / 3, h.h / 1.6, 0, 0, Math.PI * 2);
+    ctx.ellipse(x + h.w / 2, h.y + 12, h.w / 3, h.h / 1.55, 0, 0, Math.PI * 2);
     ctx.fill();
 
     ctx.fillStyle = "#101010";
     ctx.fillRect(x + h.w / 2 - 16, h.y - 15, 5, 9);
     ctx.fillRect(x + h.w / 2 + 11, h.y - 15, 5, 9);
   }
+}
+
+function drawAmbientMotes() {
+  ctx.save();
+  ctx.fillStyle = "#fff8d0";
+  for (const p of ambient) {
+    const pulse = 0.75 + Math.sin(frame * 0.02 + p.twinkle) * 0.25;
+    ctx.globalAlpha = p.alpha * pulse;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+function distanceToGround(x, y, w, h, maxTiles = 6) {
+  const bottom = y + h;
+  const minTx = Math.floor((x + 2) / TILE);
+  const maxTx = Math.floor((x + w - 2) / TILE);
+  const startTy = Math.floor(bottom / TILE);
+  let nearest = maxTiles * TILE;
+
+  for (let ty = startTy; ty <= Math.min(ROWS - 1, startTy + maxTiles); ty += 1) {
+    for (let tx = minTx; tx <= maxTx; tx += 1) {
+      if (!SOLID.has(tileAt(tx, ty))) continue;
+      const dist = ty * TILE - bottom;
+      if (dist >= 0 && dist < nearest) nearest = dist;
+    }
+  }
+
+  return nearest;
+}
+
+function drawSoftShadow(x, y, w, h, baseAlpha = 0.24) {
+  const dist = distanceToGround(x, y, w, h, 6);
+  const alpha = clamp(baseAlpha - dist * 0.007, 0.04, baseAlpha);
+  const stretch = clamp(1 + dist * 0.02, 1, 2.25);
+  const rx = Math.max(8, w * 0.4 * stretch);
+  const ry = Math.max(3, h * 0.11);
+
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.fillStyle = "#000000";
+  ctx.beginPath();
+  ctx.ellipse(x + w / 2, y + h + 3, rx, ry, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawParticles(layer = "front") {
+  ctx.save();
+  for (const p of particles) {
+    if (p.layer !== layer) continue;
+    const life = clamp(p.life / p.maxLife, 0, 1);
+    const size = Math.max(0.7, p.size);
+    ctx.globalAlpha = life;
+    ctx.fillStyle = p.color;
+    ctx.shadowColor = p.color;
+    ctx.shadowBlur = p.glow || 0;
+    ctx.fillRect(p.x - size * 0.5, p.y - size * 0.5, size, size);
+  }
+  ctx.restore();
+}
+
+function drawPostFx() {
+  const progress = clamp(player.x / Math.max(1, WORLD_W - WIDTH), 0, 1);
+  const wash = ctx.createLinearGradient(0, 0, WIDTH, HEIGHT);
+  wash.addColorStop(0, `rgba(255,240,190,${lerp(0.05, 0.12, progress)})`);
+  wash.addColorStop(1, "rgba(140,200,255,0.06)");
+  ctx.fillStyle = wash;
+  ctx.fillRect(0, 0, WIDTH, HEIGHT);
+
+  const vignette = ctx.createRadialGradient(
+    WIDTH * 0.5,
+    HEIGHT * 0.45,
+    HEIGHT * 0.25,
+    WIDTH * 0.5,
+    HEIGHT * 0.45,
+    HEIGHT * 0.86
+  );
+  vignette.addColorStop(0, "rgba(0,0,0,0)");
+  vignette.addColorStop(1, "rgba(0,0,0,0.36)");
+  ctx.fillStyle = vignette;
+  ctx.fillRect(0, 0, WIDTH, HEIGHT);
+
+  if (!grainReady) return;
+  const xShift = Math.floor((frame * 0.65) % grainCanvas.width);
+  const yShift = Math.floor((frame * 0.42) % grainCanvas.height);
+  ctx.save();
+  ctx.globalAlpha = 0.08;
+  ctx.globalCompositeOperation = "overlay";
+  for (let x = -grainCanvas.width + xShift; x < WIDTH; x += grainCanvas.width) {
+    for (let y = -grainCanvas.height + yShift; y < HEIGHT; y += grainCanvas.height) {
+      ctx.drawImage(grainCanvas, x, y);
+    }
+  }
+  ctx.restore();
 }
 
 function drawBushes() {
@@ -1088,6 +1437,22 @@ function drawCoins() {
     const spin = Math.abs(Math.sin((frame + c.phase) / 8));
     const rx = 2 + spin * 7;
 
+    ctx.save();
+    ctx.globalAlpha = 0.16;
+    ctx.fillStyle = "#000000";
+    ctx.beginPath();
+    ctx.ellipse(c.x, c.y + bob + 14, rx * 0.85, 3.2, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
+    ctx.save();
+    ctx.globalAlpha = 0.17;
+    ctx.fillStyle = "#fff0a6";
+    ctx.beginPath();
+    ctx.ellipse(c.x, c.y + bob, rx + 5, 13, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
     ctx.fillStyle = "#f7d046";
     ctx.beginPath();
     ctx.ellipse(c.x, c.y + bob, rx, 10, 0, 0, Math.PI * 2);
@@ -1118,6 +1483,11 @@ function drawPopCoins() {
 
 function drawPowerups() {
   for (const p of powerups) {
+    drawSoftShadow(p.x, p.y, p.w, p.h, 0.2);
+
+    ctx.fillStyle = "rgba(255, 247, 211, 0.2)";
+    ctx.fillRect(p.x - 2, p.y - 2, p.w + 4, p.h + 4);
+
     ctx.fillStyle = "#f5d5b3";
     ctx.fillRect(p.x + 8, p.y + 12, 12, 14);
     ctx.fillStyle = "#1a1a1a";
@@ -1126,6 +1496,8 @@ function drawPowerups() {
 
     ctx.fillStyle = "#d43d35";
     ctx.fillRect(p.x + 2, p.y + 4, 24, 10);
+    ctx.fillStyle = "#ff6d5f";
+    ctx.fillRect(p.x + 3, p.y + 5, 22, 3);
     ctx.fillStyle = "#f9f6f1";
     ctx.fillRect(p.x + 6, p.y + 7, 5, 4);
     ctx.fillRect(p.x + 18, p.y + 7, 5, 4);
@@ -1137,32 +1509,40 @@ function drawEnemies() {
   const step = Math.floor(frame / 8) % 2;
 
   for (const e of enemies) {
+    const bob = e.state === "dead" ? 0 : Math.abs(Math.sin((frame + e.x * 0.15) / 8)) * 1.6;
+    const ey = e.y + bob;
+    drawSoftShadow(e.x, ey, e.w, e.h, 0.2);
+
     if (e.type === "beetle") {
       ctx.fillStyle = e.state === "dead" ? "#4a4f8d" : "#5565b6";
-      ctx.fillRect(e.x + 2, e.y + 5, e.w - 4, e.h - 5);
+      ctx.fillRect(e.x + 2, ey + 5, e.w - 4, e.h - 5);
+      ctx.fillStyle = e.state === "dead" ? "#6570b5" : "#7f8be3";
+      ctx.fillRect(e.x + 4, ey + 7, e.w - 8, 4);
       ctx.fillStyle = "#e5d4b5";
-      ctx.fillRect(e.x + 6, e.y + 11, e.w - 12, 9);
+      ctx.fillRect(e.x + 6, ey + 11, e.w - 12, 9);
       ctx.fillStyle = "#151515";
-      ctx.fillRect(e.x + 8, e.y + 13, 4, 4);
-      ctx.fillRect(e.x + e.w - 12, e.y + 13, 4, 4);
+      ctx.fillRect(e.x + 8, ey + 13, 4, 4);
+      ctx.fillRect(e.x + e.w - 12, ey + 13, 4, 4);
       ctx.fillStyle = "#2b2b2b";
-      ctx.fillRect(e.x + 4, e.y + e.h - 4, 8, 3);
-      ctx.fillRect(e.x + e.w - 12, e.y + e.h - 4, 8, 3);
+      ctx.fillRect(e.x + 4, ey + e.h - 4, 8, 3);
+      ctx.fillRect(e.x + e.w - 12, ey + e.h - 4, 8, 3);
       continue;
     }
 
-    ctx.fillStyle = "#8b4e20";
-    ctx.fillRect(e.x, e.y + 3, e.w, e.h - 3);
+    ctx.fillStyle = e.state === "dead" ? "#6f3d17" : "#8b4e20";
+    ctx.fillRect(e.x, ey + 3, e.w, e.h - 3);
+    ctx.fillStyle = "#a25f2a";
+    ctx.fillRect(e.x + 2, ey + 5, e.w - 4, 4);
     ctx.fillStyle = "#f2ddb6";
-    ctx.fillRect(e.x + 5, e.y + 10, e.w - 10, 12);
+    ctx.fillRect(e.x + 5, ey + 10, e.w - 10, 12);
     ctx.fillStyle = "#1b1108";
-    ctx.fillRect(e.x + 8, e.y + 13, 4, 4);
-    ctx.fillRect(e.x + e.w - 12, e.y + 13, 4, 4);
+    ctx.fillRect(e.x + 8, ey + 13, 4, 4);
+    ctx.fillRect(e.x + e.w - 12, ey + 13, 4, 4);
 
     const shift = step === 0 ? 0 : 2;
     ctx.fillStyle = "#5d2f12";
-    ctx.fillRect(e.x + 3 + shift, e.y + e.h - 4, 9, 3);
-    ctx.fillRect(e.x + e.w - 12 - shift, e.y + e.h - 4, 9, 3);
+    ctx.fillRect(e.x + 3 + shift, ey + e.h - 4, 9, 3);
+    ctx.fillRect(e.x + e.w - 12 - shift, ey + e.h - 4, 9, 3);
   }
 }
 
@@ -1328,6 +1708,19 @@ function drawPlayer() {
   const moving = player.onGround && Math.abs(player.vx) > 0.15;
   const runFrame = moving ? Math.floor(frame / 6) % 2 : 0;
   const airborne = !player.onGround;
+  const auraStrength = clamp((Math.abs(player.vx) - 3.6) / 4.2, 0, 1) * 0.18 + (player.form === "big" ? 0.08 : 0);
+
+  drawSoftShadow(x, y, player.w, player.h, player.onGround ? 0.24 : 0.14);
+
+  if (auraStrength > 0.02) {
+    const cx = x + player.w / 2;
+    const cy = y + player.h * 0.5;
+    const glow = ctx.createRadialGradient(cx, cy, 4, cx, cy, player.h * 1.05);
+    glow.addColorStop(0, `rgba(255,246,171,${auraStrength})`);
+    glow.addColorStop(1, "rgba(255,246,171,0)");
+    ctx.fillStyle = glow;
+    ctx.fillRect(x - player.h, y - player.h, player.h * 3, player.h * 3);
+  }
 
   ctx.save();
   if (player.facing < 0) {
@@ -1343,6 +1736,19 @@ function drawPlayer() {
   }
 
   ctx.restore();
+
+  if (airborne && Math.abs(player.vx) > 5.6) {
+    ctx.save();
+    ctx.globalAlpha = 0.32;
+    ctx.strokeStyle = "#fff2a8";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(x + player.w * 0.25, y + player.h * 0.6);
+    ctx.lineTo(x - player.facing * 8, y + player.h * 0.5);
+    ctx.lineTo(x + player.w * 0.55, y + player.h * 0.4);
+    ctx.stroke();
+    ctx.restore();
+  }
 }
 
 function drawOverlay() {
@@ -1358,10 +1764,14 @@ function drawOverlay() {
 }
 
 function render() {
+  ctx.save();
+  ctx.translate(shakeX, shakeY);
   drawBackground();
+  drawAmbientMotes();
 
   ctx.save();
   ctx.translate(-cameraX, 0);
+  drawParticles("back");
   drawBushes();
   drawTiles();
   drawCoins();
@@ -1370,6 +1780,10 @@ function render() {
   drawPowerups();
   drawEnemies();
   drawPlayer();
+  drawParticles("front");
+  ctx.restore();
+
+  drawPostFx();
   ctx.restore();
 
   if (state === "gameover" || state === "won") {
@@ -1479,5 +1893,6 @@ function gameLoop() {
 
 bindInput();
 bindTouch();
+initVisualFx();
 restartGame();
 gameLoop();
