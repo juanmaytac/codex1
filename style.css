@@ -1,0 +1,141 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: "Lucida Console", "Courier New", monospace;
+  color: #fefefe;
+  background:
+    radial-gradient(circle at 14% 8%, rgba(255, 253, 191, 0.75), transparent 20%),
+    linear-gradient(180deg, #7fd3ff 0%, #6cb8ff 54%, #87d7ff 100%);
+  display: grid;
+  place-items: center;
+  padding: 20px;
+}
+
+.game-shell {
+  width: min(980px, 100%);
+  display: grid;
+  gap: 8px;
+  justify-items: center;
+  background: rgba(17, 58, 124, 0.12);
+  border: 4px solid rgba(16, 57, 119, 0.45);
+  border-radius: 14px;
+  padding: 14px;
+  backdrop-filter: blur(2px);
+}
+
+h1 {
+  margin: 0;
+  letter-spacing: 2px;
+  font-size: clamp(1rem, 2.2vw, 1.4rem);
+  color: #fff8cc;
+  text-shadow:
+    0 2px 0 #2f1808,
+    0 4px 0 #2f1808;
+}
+
+.hint {
+  margin: 0;
+  text-align: center;
+  font-size: 0.8rem;
+  color: #f1f6ff;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.45);
+}
+
+.hud {
+  width: min(960px, 100%);
+  display: grid;
+  grid-template-columns: repeat(5, minmax(120px, 1fr));
+  gap: 12px;
+  background: #121212;
+  color: #fafafa;
+  border: 3px solid #000;
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-size: 0.78rem;
+  text-align: center;
+  box-shadow: 0 3px 0 #00000066;
+}
+
+.hud p {
+  margin: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.hud-label {
+  color: #b6d8ff;
+  font-size: 0.68rem;
+  letter-spacing: 1px;
+}
+
+#game {
+  width: min(960px, 100%);
+  height: auto;
+  border: 3px solid #0f2f67;
+  border-radius: 8px;
+  box-shadow:
+    0 12px 28px rgba(0, 0, 0, 0.25),
+    0 4px 0 rgba(2, 26, 70, 0.75);
+  background: #5c94fc;
+  image-rendering: pixelated;
+}
+
+.message {
+  margin: 0;
+  min-height: 1.2rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #fff6b0;
+  text-shadow: 0 1px 0 #1c0c00;
+}
+
+.touch-controls {
+  width: min(560px, 100%);
+  display: none;
+  gap: 8px;
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.touch-btn {
+  border: 2px solid #132347;
+  border-radius: 10px;
+  background: linear-gradient(180deg, #fff2aa, #f7b432);
+  color: #281600;
+  font-weight: 800;
+  font-size: 0.9rem;
+  padding: 11px 10px;
+  box-shadow: 0 4px 0 #8b5000;
+}
+
+.touch-btn:active {
+  transform: translateY(2px);
+  box-shadow: 0 2px 0 #8b5000;
+}
+
+.touch-jump {
+  background: linear-gradient(180deg, #a4ffb7, #49b761);
+  box-shadow: 0 4px 0 #246d39;
+}
+
+.touch-run {
+  background: linear-gradient(180deg, #ffd3d1, #ef5a4f);
+  color: #2a0404;
+  box-shadow: 0 4px 0 #8e1915;
+}
+
+@media (max-width: 760px) {
+  .hud {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+}
+
+@media (hover: none), (pointer: coarse) {
+  .touch-controls {
+    display: grid;
+  }
+}

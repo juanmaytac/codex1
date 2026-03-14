@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mini Bros Deluxe</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="game-shell">
+    <h1>Mini Bros Deluxe</h1>
+    <p class="hint">Mover: A/D o flechas | Saltar: W, Arriba o Espacio | Correr: Shift | Reiniciar: R</p>
+
+    <section class="hud" aria-label="Marcador">
+      <p><span class="hud-label">MARIO</span><span id="score">000000</span></p>
+      <p><span class="hud-label">MONEDAS</span><span id="coins">x00</span></p>
+      <p><span class="hud-label">MUNDO</span><span id="world">1-1</span></p>
+      <p><span class="hud-label">VIDAS</span><span id="lives">3</span></p>
+      <p><span class="hud-label">TIEMPO</span><span id="time">300</span></p>
+    </section>
+
+    <canvas id="game" width="960" height="576" aria-label="Juego de plataformas"></canvas>
+    <p id="message" class="message" role="status" aria-live="polite"></p>
+
+    <section id="touchControls" class="touch-controls" aria-label="Controles tactiles">
+      <button class="touch-btn" data-key="arrowleft">LEFT</button>
+      <button class="touch-btn" data-key="arrowright">RIGHT</button>
+      <button class="touch-btn touch-jump" data-key="jump">JUMP</button>
+      <button class="touch-btn touch-run" data-key="shift">RUN</button>
+    </section>
+  </main>
+
+  <script src="game.js"></script>
+</body>
+</html>
