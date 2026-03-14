@@ -807,7 +807,7 @@ function updatePowerups(dt) {
       const grew = growPlayer();
       player.invul = 50;
       addScore(1000);
-      setMessage(grew ? "Super forma activada!" : "Puntos extra!");
+      setMessage(grew ? "Super Pikachu activado!" : "Puntos extra!");
       sfx("power");
     }
   }
@@ -1209,13 +1209,125 @@ function drawFlagAndCastle() {
   }
 }
 
+function pix(baseX, baseY, gx, gy, gw, gh, color, unit = 2) {
+  ctx.fillStyle = color;
+  ctx.fillRect(baseX + gx * unit, baseY + gy * unit, gw * unit, gh * unit);
+}
+
+function drawPikaTail(baseX, baseY, unit, wiggle, big) {
+  const yOffset = big ? 10 : 5;
+  const shape = [
+    [-4, yOffset + 6, 2, 2, "#9c5f1a"],
+    [-3, yOffset + 4, 2, 2, "#9c5f1a"],
+    [-2, yOffset + 2, 2, 2, "#9c5f1a"],
+    [-1, yOffset + 1, 2, 2, "#ffd84f"],
+    [0, yOffset + 2, 2, 2, "#ffd84f"],
+    [1, yOffset + 3, 2, 2, "#ffd84f"],
+    [2, yOffset + 4, 2, 2, "#ffd84f"],
+    [1, yOffset + 5, 2, 2, "#f4be2d"],
+    [0, yOffset + 6, 2, 2, "#f4be2d"]
+  ];
+
+  for (const [gx, gy, gw, gh, color] of shape) {
+    pix(baseX, baseY, gx, gy + wiggle, gw, gh, color, unit);
+  }
+}
+
+function drawPikaSmall(baseX, baseY, runFrame, airborne) {
+  const unit = 2;
+  const legOffset = airborne ? -1 : (runFrame === 0 ? 0 : 1);
+  const cheekPulse = Math.sin(frame / 6) > 0 ? "#ff5d6a" : "#ff7b85";
+  const eyeBlink = Math.floor(frame / 70) % 14 === 0;
+
+  drawPikaTail(baseX, baseY, unit, runFrame === 0 ? 0 : 1, false);
+
+  pix(baseX, baseY, 1, 0, 2, 4, "#ffd84f", unit);
+  pix(baseX, baseY, 1, 0, 2, 2, "#2d2310", unit);
+  pix(baseX, baseY, 8, 0, 2, 4, "#ffd84f", unit);
+  pix(baseX, baseY, 8, 0, 2, 2, "#2d2310", unit);
+
+  pix(baseX, baseY, 2, 2, 8, 5, "#ffd84f", unit);
+  pix(baseX, baseY, 2, 5, 8, 7, "#f8c92f", unit);
+  pix(baseX, baseY, 3, 3, 6, 6, "#ffe075", unit);
+
+  pix(baseX, baseY, 3, 5, 1, 1, cheekPulse, unit);
+  pix(baseX, baseY, 8, 5, 1, 1, cheekPulse, unit);
+  pix(baseX, baseY, 3, 9, 2, 1, "#8d5a1d", unit);
+  pix(baseX, baseY, 7, 9, 2, 1, "#8d5a1d", unit);
+
+  if (eyeBlink) {
+    pix(baseX, baseY, 4, 4, 1, 1, "#1b1b1b", unit);
+    pix(baseX, baseY, 7, 4, 1, 1, "#1b1b1b", unit);
+  } else {
+    pix(baseX, baseY, 4, 4, 1, 2, "#1b1b1b", unit);
+    pix(baseX, baseY, 7, 4, 1, 2, "#1b1b1b", unit);
+    pix(baseX, baseY, 4, 4, 1, 1, "#ffffff", unit);
+  }
+
+  pix(baseX, baseY, 5, 6, 1, 1, "#5b3a0f", unit);
+  pix(baseX, baseY, 6, 6, 1, 1, "#5b3a0f", unit);
+
+  pix(baseX, baseY, 3, 12 + legOffset, 2, 3, "#f4be2d", unit);
+  pix(baseX, baseY, 7, 12 - legOffset, 2, 3, "#f4be2d", unit);
+  pix(baseX, baseY, 3, 14 + legOffset, 2, 1, "#9c5f1a", unit);
+  pix(baseX, baseY, 7, 14 - legOffset, 2, 1, "#9c5f1a", unit);
+}
+
+function drawPikaBig(baseX, baseY, runFrame, airborne) {
+  const unit = 2;
+  const legOffset = airborne ? -1 : (runFrame === 0 ? 0 : 1);
+  const sparkPhase = Math.sin(frame / 5);
+  const eyeBlink = Math.floor(frame / 65) % 13 === 0;
+
+  drawPikaTail(baseX, baseY, unit, runFrame === 0 ? 0 : 1, true);
+
+  pix(baseX, baseY, 1, 0, 2, 6, "#ffd84f", unit);
+  pix(baseX, baseY, 1, 0, 2, 3, "#2d2310", unit);
+  pix(baseX, baseY, 8, 0, 2, 6, "#ffd84f", unit);
+  pix(baseX, baseY, 8, 0, 2, 3, "#2d2310", unit);
+
+  pix(baseX, baseY, 2, 4, 8, 7, "#ffd84f", unit);
+  pix(baseX, baseY, 2, 10, 8, 12, "#f8c92f", unit);
+  pix(baseX, baseY, 3, 6, 6, 12, "#ffe075", unit);
+
+  if (eyeBlink) {
+    pix(baseX, baseY, 4, 7, 1, 1, "#1b1b1b", unit);
+    pix(baseX, baseY, 7, 7, 1, 1, "#1b1b1b", unit);
+  } else {
+    pix(baseX, baseY, 4, 7, 1, 2, "#1b1b1b", unit);
+    pix(baseX, baseY, 7, 7, 1, 2, "#1b1b1b", unit);
+    pix(baseX, baseY, 4, 7, 1, 1, "#ffffff", unit);
+  }
+
+  pix(baseX, baseY, 3, 9, 1, 2, "#ff5d6a", unit);
+  pix(baseX, baseY, 8, 9, 1, 2, "#ff5d6a", unit);
+  pix(baseX, baseY, 5, 10, 2, 1, "#5b3a0f", unit);
+
+  pix(baseX, baseY, 3, 16, 2, 1, "#8d5a1d", unit);
+  pix(baseX, baseY, 7, 16, 2, 1, "#8d5a1d", unit);
+  pix(baseX, baseY, 2, 19, 1, 3, "#f4be2d", unit);
+  pix(baseX, baseY, 9, 19, 1, 3, "#f4be2d", unit);
+
+  pix(baseX, baseY, 3, 22 + legOffset, 2, 5, "#f4be2d", unit);
+  pix(baseX, baseY, 7, 22 - legOffset, 2, 5, "#f4be2d", unit);
+  pix(baseX, baseY, 3, 26 + legOffset, 2, 1, "#9c5f1a", unit);
+  pix(baseX, baseY, 7, 26 - legOffset, 2, 1, "#9c5f1a", unit);
+
+  if (sparkPhase > 0.2) {
+    pix(baseX, baseY, -1, 12, 1, 1, "#fff09d", unit);
+    pix(baseX, baseY, 11, 14, 1, 1, "#fff09d", unit);
+    pix(baseX, baseY, 10, 8, 1, 1, "#fff09d", unit);
+  }
+}
+
 function drawPlayer() {
   if (player.invul > 0 && Math.floor(player.invul / 5) % 2 === 0) return;
 
   const x = Math.round(player.x);
   const y = Math.round(player.y);
   const moving = player.onGround && Math.abs(player.vx) > 0.15;
-  const run = moving ? Math.floor(frame / 6) % 2 : 0;
+  const runFrame = moving ? Math.floor(frame / 6) % 2 : 0;
+  const airborne = !player.onGround;
 
   ctx.save();
   if (player.facing < 0) {
@@ -1225,56 +1337,9 @@ function drawPlayer() {
   }
 
   if (player.form === "small") {
-    const leg = run === 0 ? 0 : 2;
-    ctx.fillStyle = "#de3f33";
-    ctx.fillRect(x + 4, y, 16, 6);
-    ctx.fillRect(x + 2, y + 6, 18, 3);
-
-    ctx.fillStyle = "#f7c79a";
-    ctx.fillRect(x + 8, y + 8, 10, 8);
-    ctx.fillStyle = "#60350e";
-    ctx.fillRect(x + 6, y + 8, 3, 8);
-    ctx.fillRect(x + 11, y + 12, 8, 2);
-
-    ctx.fillStyle = "#de3f33";
-    ctx.fillRect(x + 6, y + 16, 12, 5);
-
-    ctx.fillStyle = "#2859cf";
-    ctx.fillRect(x + 4, y + 20, 16, 8);
-    ctx.fillStyle = "#efcf52";
-    ctx.fillRect(x + 8, y + 21, 2, 2);
-    ctx.fillRect(x + 14, y + 21, 2, 2);
-
-    ctx.fillStyle = "#7f441d";
-    ctx.fillRect(x + 4 + leg, y + 27, 6, 3);
-    ctx.fillRect(x + 14 - leg, y + 27, 6, 3);
+    drawPikaSmall(x, y, runFrame, airborne);
   } else {
-    const leg = run === 0 ? 0 : 2;
-    ctx.fillStyle = "#de3f33";
-    ctx.fillRect(x + 3, y, 18, 8);
-    ctx.fillRect(x + 2, y + 8, 20, 4);
-
-    ctx.fillStyle = "#f7c79a";
-    ctx.fillRect(x + 7, y + 13, 11, 11);
-    ctx.fillStyle = "#60350e";
-    ctx.fillRect(x + 5, y + 13, 3, 11);
-    ctx.fillRect(x + 10, y + 18, 9, 3);
-
-    ctx.fillStyle = "#de3f33";
-    ctx.fillRect(x + 5, y + 24, 14, 8);
-    ctx.fillStyle = "#2859cf";
-    ctx.fillRect(x + 4, y + 32, 16, 14);
-    ctx.fillStyle = "#efcf52";
-    ctx.fillRect(x + 8, y + 35, 2, 2);
-    ctx.fillRect(x + 14, y + 35, 2, 2);
-
-    ctx.fillStyle = "#f7c79a";
-    ctx.fillRect(x + 1, y + 27, 4, 7);
-    ctx.fillRect(x + 19, y + 27, 4, 7);
-
-    ctx.fillStyle = "#7f441d";
-    ctx.fillRect(x + 3 + leg, y + 46, 7, 8);
-    ctx.fillRect(x + 14 - leg, y + 46, 7, 8);
+    drawPikaBig(x, y, runFrame, airborne);
   }
 
   ctx.restore();
